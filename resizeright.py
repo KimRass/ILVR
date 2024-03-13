@@ -23,7 +23,8 @@ def support_size(size):
 
 @support_size(4)
 def cubic(x):
-    absx = np.abs(x)
+    # absx = np.abs(x)
+    absx = np.abs(x.cpu())
     absx2 = absx ** 2
     absx3 = absx ** 3
     return (
@@ -315,7 +316,7 @@ def apply_weights(input, field_of_view, weights, dim, n_dims, pad_size, pad_mode
 
     # now we simply multiply the weights with the neighbors, and then sum
     # along the field of view, to get a single value per out pixel
-    tmp_output = (neighbors * tmp_weights).sum(1)
+    tmp_output = (neighbors * tmp_weights.to(neighbors.device)).sum(1)
 
     # we transpose back the resized dim to its original position
     return fw_swapaxes(tmp_output, 0, dim, fw)
@@ -502,8 +503,13 @@ def fw_empty(shape, fw, device):
         return fw.empty(size=(*shape,), device=device)
 
 
-def operator(x, N):
-    return resize(resize(x, scale_factors=1 / N), scale_factors=N)
+def low_pass_filter(x, scale_factor):
+    x = resize(x, scale_factors=1 / scale_factor)
+    return resize(x, scale_factors=scale_factor)
+    # x = resize(x, scale_factors=1 / scale_factor)
+    # x = resize(x, scale_factors=scale_factor)
+    # print(x.device)
+    # return x
 
 
 if __name__ == "__main__":
@@ -511,14 +517,17 @@ if __name__ == "__main__":
     import torchvision.transforms.functional as TF
     from pathlib import Path
 
-    image = Image.open("/home/dmeta0304/Downloads/StyleGAN2.jpg").convert("RGB")
+    device = torch.device("mps")
+
+    image = Image.open("/Users/jongbeomkim/Desktop/workspace/ILVR/experiments/image_resizing_methods/ori.jpg").convert("RGB")
     image = TF.to_tensor(image)
     image = TF.normalize(image, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    image = image.to(device)
 
     N = 64
     ROOT_DIR = Path(__file__).resolve().parent
 
-    out = operator(image[None, ...], N)
+    out = low_pass_filter(image[None, ...], N)
     out_grid = image_to_grid(out, n_cols=1)
     save_image(out_grid, ROOT_DIR/"resizeright.jpg")
 

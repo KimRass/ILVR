@@ -1,10 +1,8 @@
 import torch
 from torch import nn
-from torch.nn import functional as F
 import numpy as np
 import imageio
 from tqdm import tqdm
-import contextlib
 
 from resizeright import low_pass_filter
 from data import CelebADS
@@ -208,69 +206,11 @@ class ILVR(nn.Module):
             n_frames=None,
         )
 
-    # def vis_denoising_process(self, batch_size, save_path, n_frames=100):
-    #     rand_noise = self.sample_noise(batch_size=batch_size)
-    #     frames = self.perform_denoising_process(
-    #         noisy_image=rand_noise,
-    #         start_diffusion_step_idx=self.n_diffusion_steps - 1,
-    #         n_frames=n_frames,
-    #     )
-    #     imageio.mimsave(save_path, frames)
-
-    # def _get_ori_images(self, data_dir, image_idx1, image_idx2):
-    #     test_ds = CelebADS(
-    #         data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
-    #     )
-    #     ori_image1 = test_ds[image_idx1][None, ...].to(self.device)
-    #     ori_image2 = test_ds[image_idx2][None, ...].to(self.device)
-    #     return ori_image1, ori_image2
-
-    # def _get_linearly_interpolated_image(self, x, y, n_points):
-    #     weight = torch.linspace(
-    #         start=0, end=1, steps=n_points, device=self.device,
-    #     )[:, None, None, None]
-    #     return (1 - weight) * x + weight * y
-
-    # def interpolate(self, data_dir, image_idx1, image_idx2, interpolate_at=500, n_points=10):
-    #     ori_image1, ori_image2 = self._get_ori_images(
-    #         data_dir=data_dir, image_idx1=image_idx1, image_idx2=image_idx2,
-    #     )
-
-    #     diffusion_step = self.batchify_diffusion_steps(interpolate_at, batch_size=1)
-    #     noisy_image1 = self.perform_diffusion_process(
-    #         ori_image=ori_image1, diffusion_step=diffusion_step,
-    #     )
-    #     noisy_image2 = self.perform_diffusion_process(
-    #         ori_image=ori_image2, diffusion_step=diffusion_step,
-    #     )
-
-    #     x = self._get_linearly_interpolated_image(noisy_image1, noisy_image2, n_points=n_points)
-    #     denoised_image = self.perform_denoising_process(
-    #         noisy_image=x,
-    #         start_diffusion_step_idx=interpolate_at,
-    #         n_frames=None,
-    #     )
-    #     return torch.cat([ori_image1, denoised_image, ori_image2], dim=0)
-
-    # def coarse_to_fine_interpolate(self, data_dir, image_idx1, image_idx2, n_rows=9, n_points=10):
-    #     rows = list()
-    #     pbar = tqdm(
-    #         range(
-    #             self.n_diffusion_steps - 1,
-    #             -1,
-    #             - self.n_diffusion_steps // (n_rows - 1),
-    #         ),
-    #         leave=False,
-    #     )
-    #     for interpolate_at in pbar:
-    #         pbar.set_description("Coarse to fine interpolating...")
-
-    #         row = self.interpolate(
-    #             data_dir=data_dir,
-    #             image_idx1=image_idx1,
-    #             image_idx2=image_idx2,
-    #             interpolate_at=interpolate_at,
-    #             n_points=n_points,
-    #         )
-    #         rows.append(row)
-    #     return torch.cat(rows, dim=0)
+    def vis_denoising_process(self, batch_size, save_path, n_frames=100):
+        rand_noise = self.sample_noise(batch_size=batch_size)
+        frames = self.perform_denoising_process(
+            noisy_image=rand_noise,
+            start_diffusion_step_idx=self.n_diffusion_steps - 1,
+            n_frames=n_frames,
+        )
+        imageio.mimsave(save_path, frames)

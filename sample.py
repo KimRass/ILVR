@@ -55,7 +55,8 @@ def main():
                 ref_image_idx=args.REF_IMAGE_IDX,
                 scale_factor=args.SCALE_FACTOR,
             )
-            gen_grid = image_to_grid(gen_image, n_cols=int(args.BATCH_SIZE ** 0.5))
+            gen_grid = image_to_grid(gen_image, n_cols=1)
+            gen_grid.show()
             save_image(gen_grid, save_path=args.SAVE_PATH)
         else:
             if args.MODE  == "interpolation":

@@ -3,21 +3,24 @@ from torch import nn
 import numpy as np
 import imageio
 from tqdm import tqdm
+from pathlib import Path
 
 from resizeright import low_pass_filter
 from celeba import CelebADS
-from utils import image_to_grid
-
+from metfaces import MetFacesDS
+from utils import image_to_grid, create_dir
 
 
 class DDPM(nn.Module):
-    def get_linear_beta_schdule(self):
-          self.beta = torch.linspace(
+    def linearly_schedule_beta(self):
+        self.beta = torch.linspace(
             self.init_beta,
             self.fin_beta,
             self.n_diffusion_steps,
             device=self.device,
         )
+        self.alpha = 1 - self.beta
+        self.alpha_bar = torch.cumprod(self.alpha, dim=0)
 
     def __init__(
         self,
@@ -40,9 +43,7 @@ class DDPM(nn.Module):
 
         self.model = model.to(device)
 
-        self.get_linear_beta_schdule()
-        self.alpha = 1 - self.beta
-        self.alpha_bar = torch.cumprod(self.alpha, dim=0)
+        self.linearly_schedule_beta()
 
     @staticmethod
     def index(x, diffusion_step):
@@ -144,6 +145,7 @@ class DDPM(nn.Module):
             start_diffusion_step_idx=self.n_diffusion_steps - 1,
             n_frames=n_frames,
         )
+        create_dir(save_path)
         imageio.mimsave(save_path, frames)
 
 
@@ -197,18 +199,23 @@ class DDPMWithILVR(DDPM):
             if n_frames is not None and (
                 diffusion_step_idx % (self.n_diffusion_steps // n_frames) == 0
             ):
-                frames.append(self._get_frame(torch.cat([ref, x], dim=0)))
+                frames.append(self._get_frame(torch.cat([ref[: 1, ...], x], dim=0)))
         return frames if n_frames is not None else x
 
-    def sample_using_single_ref(self, data_dir, ref_idx, scale_factor, batch_size):
-        rand_noise = self.sample_noise(batch_size=batch_size)
+    def sample_using_single_ref(
+        self, data_dir, ref_idx, scale_factor, batch_size, dataset="celeba"
+    ):
+        rand_noise = self.sample_noise(batch_size=batch_size - 1)
 
-        test_ds = CelebADS(
-            data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
-        )
-        ref = test_ds[ref_idx][None, ...].to(
+        if dataset == "celeba":
+            ds = CelebADS(
+                data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
+            )
+        elif dataset == "metfaces":
+            ds = MetFacesDS(data_dir=data_dir, img_size=self.img_size, hflip=False)
+        ref = ds[ref_idx][None, ...].to(
             self.device
-        ).repeat(batch_size, 1, 1, 1)
+        ).repeat(batch_size - 1, 1, 1, 1)
 
         gen_image = self.perform_ilvr(
             noisy_image=rand_noise,
@@ -226,16 +233,20 @@ class DDPMWithILVR(DDPM):
         scale_factor,
         batch_size,
         save_path,
+        dataset="celeba",
         n_frames=100,
     ):
-        rand_noise = self.sample_noise(batch_size=batch_size)
+        rand_noise = self.sample_noise(batch_size=batch_size - 1)
 
-        test_ds = CelebADS(
-            data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
-        )
-        ref = test_ds[ref_idx][None, ...].to(
+        if dataset == "celeba":
+            ds = CelebADS(
+                data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
+            )
+        elif dataset == "metfaces":
+            ds = MetFacesDS(data_dir=data_dir, img_size=self.img_size, hflip=False)
+        ref = ds[ref_idx][None, ...].to(
             self.device
-        ).repeat(batch_size, 1, 1, 1)
+        ).repeat(batch_size - 1, 1, 1, 1)
 
         frames = self.perform_ilvr(
             noisy_image=rand_noise,
@@ -244,4 +255,5 @@ class DDPMWithILVR(DDPM):
             scale_factor=scale_factor,
             n_frames=n_frames,
         )
-        imageio.mimsave(save_path, frames)
+        create_dir(save_path)
+        imageio.mimsave(Path(save_path).with_suffix(".gif"), frames)

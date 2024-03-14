@@ -3,15 +3,15 @@
 source ../../venv/cv/bin/activate
 source set_pythonpath.sh
 
-# model_params="/Users/jongbeomkim/Documents/ddpm/kr-ml-test/ddpm_celeba_64×64.pth"
-model_params="/home/dmeta0304/Downloads/ddpm_celeba_64×64.pth"
+model_params="/Users/jongbeomkim/Documents/ddpm/kr-ml-test/ddpm_celeba_64×64.pth"
+# model_params="/home/dmeta0304/Downloads/ddpm_celeba_64×64.pth"
 img_size=64
 scale_factor=8
 dataset="celeba"
-data_dir="/home/dmeta0304/Documents/datasets/"
+data_dir="/Users/jongbeomkim/Documents/datasets"
 # dataset="metfaces"
-# data_dir="/home/dmeta0304/Documents/datasets/metfaces/"
-ref_idx=11
+# data_dir="/Users/jongbeomkim/Documents/datasets/metfaces/"
+ref_idx=12
 batch_size=5
 
 # python3 ../sample.py\

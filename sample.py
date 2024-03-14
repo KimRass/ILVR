@@ -49,7 +49,7 @@ def get_max_sample_num(samples_dir, pref):
 
 
 def get_save_path(samples_dir, mode, dataset, ref_idx, scale_factor, suffix):
-    pref = f"mode={mode}-dataset={dataset}-ref_idx={ref_idx}-scale_factor={scale_factor}"
+    pref = f"mode={mode}/dataset={dataset}/ref_idx={ref_idx}-scale_factor={scale_factor}"
     max_sample_num = get_max_sample_num(samples_dir, pref=pref)
     save_stem = f"{pref}-{max_sample_num + 1}"
     return str((Path(samples_dir)/save_stem).with_suffix(suffix))
@@ -93,6 +93,22 @@ def main():
             suffix=".jpg",
         )
         save_image(gen_grid, save_path=save_path)
+    elif args.MODE == "various_scale_factors":
+        gen_image = model.sample_using_various_scale_factors(
+            data_dir=args.DATA_DIR,
+            ref_idx=args.REF_IDX,
+            dataset=args.DATASET,
+        )
+        gen_grid = image_to_grid(gen_image, n_cols=gen_image.size(0))
+        save_path = get_save_path(
+            samples_dir=SAMPLES_DIR,
+            mode=args.MODE,
+            dataset=args.DATASET,
+            ref_idx=args.REF_IDX,
+            scale_factor=args.SCALE_FACTOR,
+            suffix=".jpg",
+        )
+        save_image(gen_grid, save_path=save_path)
     elif args.MODE == "denoising_process":
         save_path = get_save_path(
             samples_dir=SAMPLES_DIR,
@@ -110,22 +126,6 @@ def main():
             save_path=save_path,
             dataset=args.DATASET,
         )
-    if args.MODE == "various_scale_factors":
-        gen_image = model.sample_from_various_scale_factors(
-            data_dir=args.DATA_DIR,
-            ref_idx=args.REF_IDX,
-            dataset=args.DATASET,
-        )
-        gen_grid = image_to_grid(gen_image, n_cols=gen_image.size(0))
-        save_path = get_save_path(
-            samples_dir=SAMPLES_DIR,
-            mode=args.MODE,
-            dataset=args.DATASET,
-            ref_idx=args.REF_IDX,
-            scale_factor=args.SCALE_FACTOR,
-            suffix=".jpg",
-        )
-        save_image(gen_grid, save_path=save_path)
 
 
 if __name__ == "__main__":

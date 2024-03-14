@@ -2,16 +2,16 @@
     # https://github.com/assafshocher/ResizeRight
     # https://github.com/jychoi118/ilvr_adm/blob/main/resizer.py
 
-import sys
-sys.path.insert(0, "ResizeRight/")
-
 import torch
 import torch.nn.functional as F
 import numpy as np
 import math
 from fractions import Fraction
+import os
 
-from utils import save_image, image_to_grid
+from utils import get_device, save_image, image_to_grid
+
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 
 
 def support_size(size):
@@ -504,19 +504,28 @@ def fw_empty(shape, fw, device):
 
 
 def downsample_then_upsample(x, scale_factor, mode="area-bicubic"):
+    ori_device = x.device
+    if ori_device.type == "mps":
+        temp_device = torch.device("cpu")
+
     if mode == "resizeright":
         x = resize(x, scale_factors=1 / scale_factor)
     elif mode == "area-bicubic":
         x = F.interpolate(x, scale_factor=1 / scale_factor, mode="area")
     else:
+        if mode == "bicubic":
+            x = x.to(temp_device)
         x = F.interpolate(x, scale_factor=1 / scale_factor, mode=mode)
 
     if mode == "resizeright":
-        return resize(x, scale_factors=scale_factor)
+        x = resize(x, scale_factors=scale_factor)
     elif mode == "area-bicubic":
-        return F.interpolate(x, scale_factor=scale_factor, mode="bicubic")
+        x = F.interpolate(
+            x.to(temp_device), scale_factor=scale_factor, mode="bicubic",
+        )
     else:
-        return F.interpolate(x, scale_factor=scale_factor, mode=mode)
+        x = F.interpolate(x, scale_factor=scale_factor, mode=mode).to(ori_device)
+    return x.to(ori_device)
 
 
 if __name__ == "__main__":
@@ -524,7 +533,10 @@ if __name__ == "__main__":
     import torchvision.transforms.functional as TF
     from pathlib import Path
 
-    DEVICE = torch.device("cpu")
+    # DEVICE = torch.device("cpu")
+    DEVICE = get_device()
+    # x = torch.randn(4, 3, 32, 32, device=DEVICE)
+    # F.interpolate(x, 4, mode="bicubic")
     ROOT_DIR = Path(__file__).resolve().parent
     SAVE_DIR = ROOT_DIR/"experiments/image_resizing_modes"
 

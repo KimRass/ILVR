@@ -62,10 +62,10 @@ def _to_pil(img):
 
 def create_dir(x):
     x = Path(x)
-    if x.is_dir():
-        x.mkdir(parents=True, exist_ok=True)
-    else:
+    if x.suffix:
         x.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        x.mkdir(parents=True, exist_ok=True)
 
 
 def save_image(image, save_path):

@@ -5,11 +5,12 @@ import imageio
 from tqdm import tqdm
 
 from resizeright import low_pass_filter
-from data import CelebADS
+from celeba import CelebADS
 from utils import image_to_grid
 
 
-class ILVR(nn.Module):
+
+class DDPM(nn.Module):
     def get_linear_beta_schdule(self):
           self.beta = torch.linspace(
             self.init_beta,
@@ -91,11 +92,9 @@ class ILVR(nn.Module):
         pred_noise = self(
             noisy_image=noisy_image.detach(), diffusion_step=diffusion_step,
         )
-        # print(noisy_image.device, pred_noise.device, alpha_t.device, beta_t.device, alpha_bar_t.device)
         model_mean = (1 / (alpha_t ** 0.5)) * (
             noisy_image - ((beta_t / ((1 - alpha_bar_t) ** 0.5)) * pred_noise)
         )
-        # print(model_mean.device)
         model_var = beta_t
 
         if diffusion_step_idx > 0:
@@ -138,8 +137,20 @@ class ILVR(nn.Module):
             n_frames=None,
         )
 
+    def vis_denoising_process(self, batch_size, save_path, n_frames=100):
+        rand_noise = self.sample_noise(batch_size=batch_size)
+        frames = self.perform_denoising_process(
+            noisy_image=rand_noise,
+            start_diffusion_step_idx=self.n_diffusion_steps - 1,
+            n_frames=n_frames,
+        )
+        imageio.mimsave(save_path, frames)
+
+
+
+class DDPMWithILVR(DDPM):
     @torch.inference_mode()
-    def refine_latent_variable(self, noisy_image, ref_image, diffusion_step_idx, scale_factor):
+    def refine_latent_variable(self, noisy_image, ref, diffusion_step_idx, scale_factor):
         """
         "Algorithm 1" line 7 to 9;
         "${x^{\prime}_{t - 1}} \sim p_{\theta}(x^{\prime}_{t - 1} \vert x_{t})$"
@@ -150,12 +161,12 @@ class ILVR(nn.Module):
         diffusion_step = self.batchify_diffusion_steps(
             diffusion_step_idx=diffusion_step_idx, batch_size=1,
         )
-        noisy_ref_image = self.perform_diffusion_process(
-            ori_image=ref_image,
+        noisy_ref = self.perform_diffusion_process(
+            ori_image=ref,
             diffusion_step=diffusion_step,
         )
         return low_pass_filter(
-            noisy_ref_image, scale_factor=scale_factor,
+            noisy_ref, scale_factor=scale_factor,
         ) + less_noisy_image - low_pass_filter(
             less_noisy_image, scale_factor=scale_factor,
         )
@@ -163,7 +174,7 @@ class ILVR(nn.Module):
     def perform_ilvr(
         self,
         noisy_image,
-        ref_image,
+        ref,
         start_diffusion_step_idx,
         scale_factor,
         n_frames=None,
@@ -178,7 +189,7 @@ class ILVR(nn.Module):
 
             x = self.refine_latent_variable(
                 x,
-                ref_image=ref_image,
+                ref=ref,
                 diffusion_step_idx=diffusion_step_idx,
                 scale_factor=scale_factor,
             )
@@ -186,31 +197,51 @@ class ILVR(nn.Module):
             if n_frames is not None and (
                 diffusion_step_idx % (self.n_diffusion_steps // n_frames) == 0
             ):
-                frames.append(self._get_frame(x))
+                frames.append(self._get_frame(torch.cat([ref, x], dim=0)))
         return frames if n_frames is not None else x
 
-    def sample_using_ilvr(self, data_dir, ref_image_idx, scale_factor):
-        rand_noise = self.sample_noise(batch_size=1)
+    def sample_using_single_ref(self, data_dir, ref_idx, scale_factor, batch_size):
+        rand_noise = self.sample_noise(batch_size=batch_size)
+
         test_ds = CelebADS(
             data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
         )
-        ref_image = test_ds[ref_image_idx][None, ...].to(self.device)
-        from utils import image_to_grid
-        image_to_grid(ref_image, n_cols=1).show()
-        # ref_image = torch.randn(1, 3, 64, 64).to(self.device)
-        return self.perform_ilvr(
+        ref = test_ds[ref_idx][None, ...].to(
+            self.device
+        ).repeat(batch_size, 1, 1, 1)
+
+        gen_image = self.perform_ilvr(
             noisy_image=rand_noise,
-            ref_image=ref_image,
+            ref=ref,
             start_diffusion_step_idx=self.n_diffusion_steps - 1,
             scale_factor=scale_factor,
             n_frames=None,
         )
+        return torch.cat([ref[: 1, ...], gen_image], dim=0)
 
-    def vis_denoising_process(self, batch_size, save_path, n_frames=100):
+    def vis_ilvr(
+        self,
+        data_dir,
+        ref_idx,
+        scale_factor,
+        batch_size,
+        save_path,
+        n_frames=100,
+    ):
         rand_noise = self.sample_noise(batch_size=batch_size)
-        frames = self.perform_denoising_process(
+
+        test_ds = CelebADS(
+            data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
+        )
+        ref = test_ds[ref_idx][None, ...].to(
+            self.device
+        ).repeat(batch_size, 1, 1, 1)
+
+        frames = self.perform_ilvr(
             noisy_image=rand_noise,
+            ref=ref,
             start_diffusion_step_idx=self.n_diffusion_steps - 1,
+            scale_factor=scale_factor,
             n_frames=n_frames,
         )
         imageio.mimsave(save_path, frames)

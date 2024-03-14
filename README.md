@@ -14,6 +14,9 @@
 - The leftmost is each reference image and the rest correspond to `scale_factor` of 4, 8, 16, 32 from left to right.
 - <img src="https://github.com/KimRass/ILVR/assets/67457712/7cbb993a-9764-4b7c-a406-eac1ed5e1250" width="500">
 
+# 2. Implementation Details
+
+
 <!-- - <img src="" width="600">
 - <img src="" width="600">
 - <img src="" width="600">
@@ -21,7 +24,10 @@
 - <img src="" width="600">
 - <img src="" width="600"> -->
 
-# 2. Theoretical Background
+# 3. Theoretical Background
 $${x^{\prime}_{t - 1}} \sim p_{\theta}(x^{\prime}_{t - 1} \vert x_{t})$$
 $$y_{t - 1} \sim q(y_{t - 1} \vert y)$$
 $$x_{t - 1} \leftarrow \phi_{N}(y_{t - 1}) + x^{\prime}_{t - 1} - \phi_{N}(x^{\prime}_{t - 1})$$
+
+# 4. References
+- [1] https://github.com/assafshocher/ResizeRight

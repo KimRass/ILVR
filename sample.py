@@ -14,17 +14,18 @@ def get_args():
 
     parser.add_argument("--model_params", type=str, required=True)
     parser.add_argument("--img_size", type=int, required=True)
-    parser.add_argument("--scale_factor", type=int, required=True)
+    parser.add_argument("--scale_factor", type=int, required=False)
     parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--data_dir", type=str, required=True)
     parser.add_argument("--ref_idx", type=int, required=True)
+
     parser.add_argument("--batch_size", type=int, required=False)
 
     parser.add_argument(
         "--mode",
         type=str,
         required=True,
-        choices=["single_ref", "denoising_process"],
+        choices=["single_ref", "denoising_process", "various_scale_factors"],
     )
 
     args = parser.parse_args()
@@ -109,6 +110,22 @@ def main():
             save_path=save_path,
             dataset=args.DATASET,
         )
+    if args.MODE == "various_scale_factors":
+        gen_image = model.sample_from_various_scale_factors(
+            data_dir=args.DATA_DIR,
+            ref_idx=args.REF_IDX,
+            dataset=args.DATASET,
+        )
+        gen_grid = image_to_grid(gen_image, n_cols=gen_image.size(0))
+        save_path = get_save_path(
+            samples_dir=SAMPLES_DIR,
+            mode=args.MODE,
+            dataset=args.DATASET,
+            ref_idx=args.REF_IDX,
+            scale_factor=args.SCALE_FACTOR,
+            suffix=".jpg",
+        )
+        save_image(gen_grid, save_path=save_path)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import imageio
 from tqdm import tqdm
 from pathlib import Path
 
-from resizeright import low_pass_filter
+from resizeright import downsample_then_upsample
 from celeba import CelebADS
 from metfaces import MetFacesDS
 from utils import image_to_grid, create_dir
@@ -167,11 +167,40 @@ class DDPMWithILVR(DDPM):
             ori_image=ref,
             diffusion_step=diffusion_step,
         )
-        return low_pass_filter(
+        return downsample_then_upsample(
             noisy_ref, scale_factor=scale_factor,
-        ) + less_noisy_image - low_pass_filter(
+        ) + less_noisy_image - downsample_then_upsample(
             less_noisy_image, scale_factor=scale_factor,
         )
+
+    @staticmethod
+    def fn(image, scale_factors=[4, 8, 16, 32]):
+        assert image.size(0) == len(scale_factors)
+
+        ls = list()
+        for i in range(image.size(0)):
+            batch = image[i: i + 1]
+            scaled_tensor = downsample_then_upsample(batch, scale_factor=scale_factors[i])
+            ls.append(scaled_tensor)
+        return torch.cat(ls, dim=0)
+
+    @torch.inference_mode()
+    def refine_latent_variable2(self, noisy_image, ref, diffusion_step_idx):
+        """
+        "Algorithm 1" line 7 to 9;
+        "${x^{\prime}_{t - 1}} \sim p_{\theta}(x^{\prime}_{t - 1} \vert x_{t})$"
+        "$y_{t - 1} \sim q(y_{t - 1} \vert y)$"
+        "$x_{t - 1} \leftarrow \phi_{N}(y_{t - 1}) + x^{\prime}_{t - 1} - \phi_{N}(x^{\prime}_{t - 1})$"
+        """
+        less_noisy_image = self.take_denoising_step(noisy_image, diffusion_step_idx=diffusion_step_idx)
+        diffusion_step = self.batchify_diffusion_steps(
+            diffusion_step_idx=diffusion_step_idx, batch_size=1,
+        )
+        noisy_ref = self.perform_diffusion_process(
+            ori_image=ref,
+            diffusion_step=diffusion_step,
+        )
+        return self.fn(noisy_ref) + less_noisy_image - self.fn(less_noisy_image)
 
     def perform_ilvr(
         self,
@@ -222,6 +251,56 @@ class DDPMWithILVR(DDPM):
             ref=ref,
             start_diffusion_step_idx=self.n_diffusion_steps - 1,
             scale_factor=scale_factor,
+            n_frames=None,
+        )
+        return torch.cat([ref[: 1, ...], gen_image], dim=0)
+
+    def perform_ilvr_from_various_scale_factors(
+        self,
+        noisy_image,
+        ref,
+        start_diffusion_step_idx,
+        n_frames=None,
+    ):
+        if n_frames is not None:
+            frames = list()
+
+        x = noisy_image
+        pbar = tqdm(range(start_diffusion_step_idx, -1, -1), leave=False)
+        for diffusion_step_idx in pbar:
+            pbar.set_description("Denoising...")
+
+            x = self.refine_latent_variable2(
+                x,
+                ref=ref,
+                diffusion_step_idx=diffusion_step_idx,
+            )
+
+            if n_frames is not None and (
+                diffusion_step_idx % (self.n_diffusion_steps // n_frames) == 0
+            ):
+                frames.append(self._get_frame(torch.cat([ref[: 1, ...], x], dim=0)))
+        return frames if n_frames is not None else x
+
+    def sample_from_various_scale_factors(
+        self, data_dir, ref_idx, dataset="celeba", batch_size=5,
+    ):
+        rand_noise = self.sample_noise(batch_size=batch_size - 1)
+
+        if dataset == "celeba":
+            ds = CelebADS(
+                data_dir=data_dir, split="test", img_size=self.img_size, hflip=False,
+            )
+        elif dataset == "metfaces":
+            ds = MetFacesDS(data_dir=data_dir, img_size=self.img_size, hflip=False)
+        ref = ds[ref_idx][None, ...].to(
+            self.device
+        ).repeat(batch_size - 1, 1, 1, 1)
+
+        gen_image = self.perform_ilvr_from_various_scale_factors(
+            noisy_image=rand_noise,
+            ref=ref,
+            start_diffusion_step_idx=self.n_diffusion_steps - 1,
             n_frames=None,
         )
         return torch.cat([ref[: 1, ...], gen_image], dim=0)

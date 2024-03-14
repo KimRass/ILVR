@@ -64,7 +64,7 @@ def resize(
         input,
         scale_factors=None,
         out_shape=None,
-        interp_method=cubic,
+        interp_mode=cubic,
         support_size=None,
         antialiasing=True,
         by_convs=False,
@@ -104,9 +104,9 @@ def resize(
                                        if scale_factors[dim] != 1.]
 
     # unless support size is specified by the user, it is an attribute
-    # of the interpolation method
+    # of the interpolation mode
     if support_size is None:
-        support_size = interp_method.support_size
+        support_size = interp_mode.support_size
 
     # output begins identical to input and changes with each iteration
     output = input
@@ -126,9 +126,9 @@ def resize(
         )
 
         # STEP 1.5: ANTIALIASING- If antialiasing is taking place, we modify
-        # the window size and the interpolation method (see inside function)
-        cur_interp_method, cur_support_size = apply_antialiasing_if_needed(
-            interp_method,
+        # the window size and the interpolation mode (see inside function)
+        cur_interp_mode, cur_support_size = apply_antialiasing_if_needed(
+            interp_mode,
             support_size,
             scale_factor,
             antialiasing,
@@ -163,7 +163,7 @@ def resize(
 
         # STEP 3- CALCULATE WEIGHTS: Match a set of weights to the pixels in
         # the field of view for each output pixel
-        weights = get_weights(cur_interp_method, projected_grid, field_of_view)
+        weights = get_weights(cur_interp_mode, projected_grid, field_of_view)
 
         # STEP 4- APPLY WEIGHTS: Each output pixel is calculated by multiplying
         # its set of weights with the pixel values in its field of view.
@@ -275,12 +275,12 @@ def calc_pad_size(in_size, out_size, field_of_view, projected_grid, scale_factor
     return pad_size, projected_grid, field_of_view
 
 
-def get_weights(interp_method, projected_grid, field_of_view):
+def get_weights(interp_mode, projected_grid, field_of_view):
     # the set of weights per each output pixels is the result of the chosen
-    # interpolation method applied to the distances between projected grid
+    # interpolation mode applied to the distances between projected grid
     # locations and the pixel-centers in the field of view (distances are
     # directed, can be positive or negative)
-    weights = interp_method(projected_grid[:, None] - field_of_view)
+    weights = interp_mode(projected_grid[:, None] - field_of_view)
 
     # we now carefully normalize the weights to sum to 1 per each output pixel
     sum_weights = weights.sum(1, keepdims=True)
@@ -415,7 +415,7 @@ def set_scale_and_output_size(in_shape, out_shape, scale_factors, by_convs,
 
 
 def apply_antialiasing_if_needed(
-        interp_method, support_size, scale_factor, antialiasing,
+        interp_mode, support_size, scale_factor, antialiasing,
     ):
     # antialiasing is "stretching" the field of view according to the scale
     # factor (only for downscaling). this is low-pass filtering. this
@@ -423,11 +423,11 @@ def apply_antialiasing_if_needed(
     # function and multiplying by the scale-factor) and the window size.
     scale_factor = float(scale_factor)
     if scale_factor >= 1.0 or not antialiasing:
-        return interp_method, support_size
-    cur_interp_method = (lambda arg: scale_factor *
-                         interp_method(scale_factor * arg))
+        return interp_mode, support_size
+    cur_interp_mode = (lambda arg: scale_factor *
+                         interp_mode(scale_factor * arg))
     cur_support_size = support_size / scale_factor
-    return cur_interp_method, cur_support_size
+    return cur_interp_mode, cur_support_size
 
 
 def fw_ceil(x, fw):
@@ -503,13 +503,20 @@ def fw_empty(shape, fw, device):
         return fw.empty(size=(*shape,), device=device)
 
 
-def low_pass_filter(x, scale_factor):
-    x = resize(x, scale_factors=1 / scale_factor)
-    return resize(x, scale_factors=scale_factor)
-    # x = resize(x, scale_factors=1 / scale_factor)
-    # x = resize(x, scale_factors=scale_factor)
-    # print(x.device)
-    # return x
+def downsample_then_upsample(x, scale_factor, mode="area-bicubic"):
+    if mode == "resizeright":
+        x = resize(x, scale_factors=1 / scale_factor)
+    elif mode == "area-bicubic":
+        x = F.interpolate(x, scale_factor=1 / scale_factor, mode="area")
+    else:
+        x = F.interpolate(x, scale_factor=1 / scale_factor, mode=mode)
+
+    if mode == "resizeright":
+        return resize(x, scale_factors=scale_factor)
+    elif mode == "area-bicubic":
+        return F.interpolate(x, scale_factor=scale_factor, mode="bicubic")
+    else:
+        return F.interpolate(x, scale_factor=scale_factor, mode=mode)
 
 
 if __name__ == "__main__":
@@ -517,25 +524,21 @@ if __name__ == "__main__":
     import torchvision.transforms.functional as TF
     from pathlib import Path
 
-    device = torch.device("mps")
+    DEVICE = torch.device("cpu")
+    ROOT_DIR = Path(__file__).resolve().parent
+    SAVE_DIR = ROOT_DIR/"experiments/image_resizing_modes"
 
-    image = Image.open("/Users/jongbeomkim/Desktop/workspace/ILVR/experiments/image_resizing_methods/ori.jpg").convert("RGB")
+    image = Image.open(SAVE_DIR/"ori.jpg").convert("RGB")
     image = TF.to_tensor(image)
     image = TF.normalize(image, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-    image = image.to(device)
+    image = image.to(DEVICE)
 
-    N = 64
-    ROOT_DIR = Path(__file__).resolve().parent
-
-    out = low_pass_filter(image[None, ...], N)
-    out_grid = image_to_grid(out, n_cols=1)
-    save_image(out_grid, ROOT_DIR/"resizeright.jpg")
-
-    for mode in ["nearest", "bilinear", "bicubic", "area"]:
-        out = F.interpolate(
-            F.interpolate(image[None, ...], scale_factor=1 / N, mode="area"),
-            scale_factor=N,
-            mode=mode,
+    scale_factor = 64
+    for mode in [
+        "resizeright", "nearest", "bilinear", "bicubic", "area", "area-bicubic",
+    ]:
+        out = downsample_then_upsample(
+            image[None, ...], scale_factor=scale_factor, mode=mode,
         )
         out_grid = image_to_grid(out, n_cols=1)
-        save_image(out_grid, ROOT_DIR/f"{mode}.jpg")
+        save_image(out_grid, save_path=SAVE_DIR/f"{mode}.jpg")

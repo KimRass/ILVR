@@ -276,59 +276,6 @@ class DDPMWithILVR(DDPM):
         )
         return torch.cat([ref[: 1, ...], gen_image], dim=0)
 
-    # def perform_ilvr_using_various_cond_range(
-    #     self,
-    #     noisy_image,
-    #     ref,
-    #     scale_factor,
-    #     start_diffusion_step_idx=999,
-    #     last_cond_step_indices=[125, 250, 375, 500, 625, 750, 875, 1000],
-    #     n_frames=None,
-    # ):
-    #     batch_size = len(last_cond_step_indices)
-    #     ref = self.select_and_batchify_ref(
-    #         dataset=dataset,
-    #         data_dir=data_dir,
-    #         ref_idx=ref_idx,
-    #         batch_size=batch_size,
-    #     )
-
-    #     diffusion_step = self.batchify_diffusion_steps(
-    #         diffusion_step_idx=999, batch_size=len(last_cond_step_indices),
-    #     )
-
-
-    #     diffusion_step >= torch.tensor(last_cond_step_indices)
-
-    #     rand_noise = self.sample_noise(batch_size=batch_size - 1)
-    #     x = rand_noise
-    #     pbar = tqdm(range(start_diffusion_step_idx, -1, -1), leave=False)
-    #     for diffusion_step_idx in pbar:
-    #         pbar.set_description("Denoising...")
-
-    #         x = self.take_denoising_step(x, diffusion_step_idx=diffusion_step_idx)
-    #         diffusion_step = self.batchify_diffusion_steps(
-    #             diffusion_step_idx=diffusion_step_idx, batch_size=1,
-    #         )
-    #         noisy_ref = self.perform_diffusion_process(
-    #             ori_image=ref,
-    #             diffusion_step=diffusion_step,
-    #         )
-
-    #         torch.where(
-    #             diffusion_step >= torch.tensor(last_cond_step_indices),
-    #             x + downsample_then_upsample(
-    #                 noisy_ref, scale_factor=scale_factor,
-    #             ) - downsample_then_upsample(x, scale_factor=scale_factor),
-    #             x,
-    #         )
-
-    #         x = x + downsample_then_upsample(
-    #             noisy_ref, scale_factor=scale_factor,
-    #         ) - downsample_then_upsample(x, scale_factor=scale_factor)
-
-
-
     def vis_ilvr(
         self,
         data_dir,

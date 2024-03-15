@@ -503,29 +503,42 @@ def fw_empty(shape, fw, device):
         return fw.empty(size=(*shape,), device=device)
 
 
-def downsample_then_upsample(x, scale_factor, mode="area-bicubic"):
-    ori_device = x.device
-    if ori_device.type == "mps":
-        temp_device = torch.device("cpu")
+def downsample_then_upsample(x, scale_factor=None, mode="area-bicubic"):
+    if scale_factor is not None:
+        ori_device = x.device
+        if ori_device.type == "mps":
+            temp_device = torch.device("cpu")
+        else:
+            temp_device = ori_device
 
-    if mode == "resizeright":
-        x = resize(x, scale_factors=1 / scale_factor)
-    elif mode == "area-bicubic":
-        x = F.interpolate(x, scale_factor=1 / scale_factor, mode="area")
-    else:
-        if mode == "bicubic":
-            x = x.to(temp_device)
-        x = F.interpolate(x, scale_factor=1 / scale_factor, mode=mode)
+        if mode == "resizeright":
+            x = resize(x, scale_factors=1 / scale_factor)
+        elif mode == "area-bicubic":
+            x = F.interpolate(x, scale_factor=1 / scale_factor, mode="area")
+        else:
+            if mode == "bicubic":
+                x = x.to(temp_device)
+            x = F.interpolate(x, scale_factor=1 / scale_factor, mode=mode)
 
-    if mode == "resizeright":
-        x = resize(x, scale_factors=scale_factor)
-    elif mode == "area-bicubic":
-        x = F.interpolate(
-            x.to(temp_device), scale_factor=scale_factor, mode="bicubic",
-        )
+        if mode == "resizeright":
+            x = resize(x, scale_factors=scale_factor)
+        elif mode == "area-bicubic":
+            x = F.interpolate(
+                x.to(temp_device), scale_factor=scale_factor, mode="bicubic",
+            )
+        else:
+            x = F.interpolate(x, scale_factor=scale_factor, mode=mode).to(ori_device)
+        return x.to(ori_device)
     else:
-        x = F.interpolate(x, scale_factor=scale_factor, mode=mode).to(ori_device)
-    return x.to(ori_device)
+        scale_factors = [4, 8, 16, 32, 64]
+        assert x.size(0) == len(scale_factors)
+
+        new_batches = list()
+        for idx, batch in enumerate(torch.chunk(x, chunks=x.size(0), dim=0)):
+            new_batches.append(
+                downsample_then_upsample(batch, scale_factor=scale_factors[idx]),
+            )
+        return torch.cat(new_batches, dim=0)
 
 
 if __name__ == "__main__":

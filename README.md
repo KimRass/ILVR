@@ -13,10 +13,12 @@
     - `scale_factor=64`:
         - <img src="https://github.com/KimRass/ILVR/assets/67457712/2e1bb2bd-388e-496d-bf52-cf640dcfbb2c" width="450">
 ## 2) `"various_scale_factors"` Mode
-- The leftmost is each reference image and the rest correspond to `scale_factor` of 4, 8, 16, 32, 64 from left to right.
-- <img src="https://github.com/KimRass/ILVR/assets/67457712/923b4b70-e0ef-4c79-9ff2-14a330d9a768" width="450">
-- <img src="https://github.com/KimRass/ILVR/assets/67457712/426bcd77-6186-49b6-aee5-4d87925174dd" width="450">
+- The leftmost is each reference image and the rest correspond to `scale_factor=4`, `8`, `16`, `32`, `64` from left to right.
+- `dataset="celeba"`:
+    - <img src="https://github.com/KimRass/ILVR/assets/67457712/923b4b70-e0ef-4c79-9ff2-14a330d9a768" width="450">
+    - <img src="https://github.com/KimRass/ILVR/assets/67457712/426bcd77-6186-49b6-aee5-4d87925174dd" width="450">
 ## 3) `"various_cond_range"` Mode
+- The leftmost is each reference image and the rest correspond to ILVR on steps from 1000 to 0, to 125, 250, 375, 500, 625, 750, 875, 1000 (No ILVR steps) from left to right.
 - `dataset="celeba"`:
     - <img src="https://github.com/KimRass/ILVR/assets/67457712/800a020f-0884-4bbf-b474-2ffe7ea2a672" width="700">
     - <img src="https://github.com/KimRass/ILVR/assets/67457712/8f87e077-1e7b-4cce-b2da-5caf37c484d6" width="700">

@@ -126,7 +126,6 @@ class DDPMWithILVR(DDPM):
 
     @torch.inference_mode()
     def refine_latent_var(
-        # self, noisy_image, ref, diffusion_step_idx, last_cond_step=None, scale_factor=None,
         self, noisy_image, ref, diffusion_step_idx, last_cond_step, scale_factor=None,
     ):
         """
@@ -143,15 +142,6 @@ class DDPMWithILVR(DDPM):
             ori_image=ref,
             diffusion_step=diffusion_step,
         )
-        # print(less_noisy_image.shape, noisy_ref.shape)
-        # return less_noisy_image + downsample_then_upsample(
-        #     noisy_ref, scale_factor=scale_factor,
-        # ) - downsample_then_upsample(less_noisy_image, scale_factor=scale_factor)
-        # if last_cond_step is None:
-        #     last_cond_step = self.batchify_diffusion_steps(
-        #         diffusion_step_idx=0, batch_size=noisy_image.size(0),
-            # )
-        # print(diffusion_step.shape, last_cond_step.shape, noisy_ref.shape, less_noisy_image.shape)
         return torch.where(
             diffusion_step[:, None, None, None].repeat(
                 1, self.image_channels, self.img_size, self.img_size,
@@ -181,15 +171,6 @@ class DDPMWithILVR(DDPM):
         for diffusion_step_idx in pbar:
             pbar.set_description("Denoising...")
 
-            # if diffusion_step_idx >= last_cond_step_idx:
-            #     x = self.refine_latent_var(
-            #         x,
-            #         ref=ref,
-            #         diffusion_step_idx=diffusion_step_idx,
-            #         scale_factor=scale_factor,
-            #     )
-            # else:
-            #     x = self.take_denoising_step(x, diffusion_step_idx=diffusion_step_idx)
             x = self.refine_latent_var(
                 noisy_image=x,
                 ref=ref,

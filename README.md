@@ -8,17 +8,19 @@
         - <img src="https://github.com/KimRass/ILVR/assets/67457712/80b76172-57da-4ac6-bb50-08567af8e903" width="450">
     - `scale_factor=16`:
         - <img src="https://github.com/KimRass/ILVR/assets/67457712/1c282aa4-82df-461a-b7d6-5e26f86440b8" width="450">
-    - `scale_factor=8`:
+    - `scale_factor=32`:
         - <img src="https://github.com/KimRass/ILVR/assets/67457712/f3ceac00-f26d-495e-8bcd-540e8a3f4a33" width="450">
+    - `scale_factor=64`:
+        - <img src="https://github.com/KimRass/ILVR/assets/67457712/2e1bb2bd-388e-496d-bf52-cf640dcfbb2c" width="450">
 ## 2) `"various_scale_factors"` Mode
 - The leftmost is each reference image and the rest correspond to `scale_factor` of 4, 8, 16, 32, 64 from left to right.
-- <img src="https://github.com/KimRass/ILVR/assets/67457712/923b4b70-e0ef-4c79-9ff2-14a330d9a768" width="400">
-- <img src="https://github.com/KimRass/ILVR/assets/67457712/426bcd77-6186-49b6-aee5-4d87925174dd" width="400">
+- <img src="https://github.com/KimRass/ILVR/assets/67457712/923b4b70-e0ef-4c79-9ff2-14a330d9a768" width="450">
+- <img src="https://github.com/KimRass/ILVR/assets/67457712/426bcd77-6186-49b6-aee5-4d87925174dd" width="450">
 ## 3) `"various_cond_range"` Mode
 - `dataset="celeba"`:
-    - <img src="https://github.com/KimRass/ILVR/assets/67457712/800a020f-0884-4bbf-b474-2ffe7ea2a672" width="600">
-    - <img src="https://github.com/KimRass/ILVR/assets/67457712/8f87e077-1e7b-4cce-b2da-5caf37c484d6" width="600">
-    - <img src="https://github.com/KimRass/ILVR/assets/67457712/0531a3c3-50e0-477b-a679-531b2a9943ef" width="600">
+    - <img src="https://github.com/KimRass/ILVR/assets/67457712/800a020f-0884-4bbf-b474-2ffe7ea2a672" width="700">
+    - <img src="https://github.com/KimRass/ILVR/assets/67457712/8f87e077-1e7b-4cce-b2da-5caf37c484d6" width="700">
+    - <img src="https://github.com/KimRass/ILVR/assets/67457712/0531a3c3-50e0-477b-a679-531b2a9943ef" width="700">
 
 # 2. Implementation Details
 

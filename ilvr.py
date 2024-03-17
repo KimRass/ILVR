@@ -254,7 +254,7 @@ class DDPMWithILVR(DDPM):
         data_dir,
         ref_idx,
         scale_factor,
-        last_cond_step_indices=[125, 250, 375, 500, 625, 750, 875, 1000],
+        last_cond_step_indices=range(0, 1000 + 1, 125),
         dataset="celeba",
     ):
         batch_size = len(last_cond_step_indices) + 1
@@ -265,7 +265,7 @@ class DDPMWithILVR(DDPM):
             ref_idx=ref_idx,
             batch_size=batch_size - 1,
         )
-        last_cond_step = torch.tensor(last_cond_step_indices, device=self.device)
+        last_cond_step = torch.tensor(last_cond_step_indices, device=self.device) - 1
         gen_image = self.perform_ilvr(
             noisy_image=rand_noise,
             ref=ref,

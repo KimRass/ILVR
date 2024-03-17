@@ -59,7 +59,7 @@ def pref_to_save_path(samples_dir, pref, suffix):
 
 def get_save_path(samples_dir, mode, dataset, ref_idx, scale_factor, last_cond_step_idx):
     pref = f"mode={mode}/dataset={dataset}/ref_idx={ref_idx}"
-    if mode == "single_ref":
+    if mode in ["single_ref", "various_cond_range"]:
         pref += f"-scale_factor={scale_factor}"
     if mode in ["single_ref", "various_scale_factors"] and last_cond_step_idx != 0:
         pref += f"-last_cond_step_idx={last_cond_step_idx}"
@@ -125,7 +125,8 @@ def main():
             dataset=args.DATASET,
         )
         gen_grid = image_to_grid(gen_image, n_cols=gen_image.size(0))
-        gen_grid.show()
+        # gen_grid.show()
+        save_image(gen_grid, save_path=save_path)
     elif args.MODE == "denoising_process":
         model.vis_ilvr(
             data_dir=args.DATA_DIR,

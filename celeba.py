@@ -1,6 +1,4 @@
 # Source: https://drive.google.com/drive/folders/0B7EVK8r0v71pTUZsaXdaSnZBZzg?resourcekey=0-rJlzl934LzC-Xp28GeIBzQ
-# References:
-    # https://github.com/KimRass/DCGAN/blob/main/celeba.py
 
 from torch.utils.data import Dataset
 from torchvision.datasets import CelebA

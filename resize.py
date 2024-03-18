@@ -23,7 +23,6 @@ def support_size(size):
 
 @support_size(4)
 def cubic(x):
-    # absx = np.abs(x)
     absx = np.abs(x.cpu())
     absx2 = absx ** 2
     absx3 = absx ** 3
@@ -45,9 +44,9 @@ def lanczos2(x):
 @support_size(6)
 def lanczos3(x):
     eps = np.finfo(np.float32).eps
-    return ((np.sin(math.pi * x) * np.sin(math.pi * x / 3) + eps) / (
-            (math.pi ** 2 * x ** 2 / 3) + eps
-        )) * (abs(x) < 3)
+    return (np.sin(math.pi * x) * np.sin(math.pi * x / 3) + eps) / (
+        (math.pi ** 2 * x ** 2 / 3) + eps
+    ) * (abs(x) < 3)
 
 
 @support_size(2)
@@ -60,7 +59,7 @@ def box(x):
     return ((-1 <= x) & (x < 0)) + ((0 <= x) & (x <= 1))
 
 
-def resize(
+def apply_resizeright(
         input,
         scale_factors=None,
         out_shape=None,
@@ -97,11 +96,12 @@ def resize(
 
     # sort indices of dimensions according to scale of each dimension.
     # since we are going dim by dim this is efficient
-    sorted_filtered_dims_and_scales = [(dim, scale_factors[dim], by_convs[dim],
-                                        in_shape[dim], out_shape[dim])
-                                       for dim in sorted(range(n_dims),
-                                       key=lambda ind: scale_factors[ind])
-                                       if scale_factors[dim] != 1.]
+    sorted_filtered_dims_and_scales = [
+        (dim, scale_factors[dim], by_convs[dim], in_shape[dim], out_shape[dim])
+        for dim
+        in sorted(range(n_dims), key=lambda ind: scale_factors[ind])
+        if scale_factors[dim] != 1.
+    ]
 
     # unless support size is specified by the user, it is an attribute
     # of the interpolation mode
@@ -225,13 +225,20 @@ def get_field_of_view(projected_grid, cur_support_size, fw, eps, device):
     return left_boundaries[:, None] + ordinal_numbers
 
 
-def calc_pad_size(in_size, out_size, field_of_view, projected_grid, scale_factor,
-                dim_by_convs, fw, device):
+def calc_pad_size(
+    in_size,
+    out_size,
+    field_of_view,
+    projected_grid,
+    scale_factor,
+    dim_by_convs,
+    fw,
+    device,
+):
     if not dim_by_convs:
         # determine padding according to neighbor coords out of bound.
         # this is a generalized notion of padding, when pad<0 it means crop
-        pad_size = [-field_of_view[0, 0].item(),
-                  field_of_view[-1, -1].item() - in_size + 1]
+        pad_size = [-field_of_view[0, 0].item(), field_of_view[-1, -1].item() - in_size + 1]
 
         # since input image will be changed by padding, coordinates of both
         # field_of_view and projected_grid need to be updated
@@ -262,11 +269,13 @@ def calc_pad_size(in_size, out_size, field_of_view, projected_grid, scale_factor
         # 5) the padding size needed is obtained by subtracting the rightmost
         #    input coordinate. if the result is positive padding is needed. if
         #    negative then negative padding means shaving off pixel columns.
-        right_pads = (((out_size - fw_arange(num_convs, fw, device) - 1)  # (1)
-                      // num_convs)  # (2)
-                      * stride  # (3)
-                      + field_of_view[:, -1]  # (4)
-                      - in_size + 1)  # (5)
+        right_pads = (
+            ((out_size - fw_arange(num_convs, fw, device) - 1)  # (1)
+            // num_convs)  # (2)
+            * stride  # (3)
+            + field_of_view[:, -1]  # (4)
+            - in_size + 1
+        )  # (5)
 
         # in the by_convs case pad_size is a list of left-right pairs. one per
         # each filter
@@ -288,8 +297,9 @@ def get_weights(interp_mode, projected_grid, field_of_view):
     return weights / sum_weights
 
 
-def apply_weights(input, field_of_view, weights, dim, n_dims, pad_size, pad_mode,
-                  fw):
+def apply_weights(
+    input, field_of_view, weights, dim, n_dims, pad_size, pad_mode, fw,
+):
     # for this operation we assume the resized dim is the first one.
     # so we transpose and will transpose back after multiplying
     tmp_input = fw_swapaxes(input, dim, 0, fw)
@@ -322,8 +332,17 @@ def apply_weights(input, field_of_view, weights, dim, n_dims, pad_size, pad_mode
     return fw_swapaxes(tmp_output, 0, dim, fw)
 
 
-def apply_convs(input, scale_factor, in_size, out_size, weights, dim, pad_size,
-                pad_mode, fw):
+def apply_convs(
+    input,
+    scale_factor,
+    in_size,
+    out_size,
+    weights,
+    dim,
+    pad_size,
+    pad_mode,
+    fw,
+):
     # for this operations we assume the resized dim is the last one.
     # so we transpose and will transpose back after multiplying
     input = fw_swapaxes(input, dim, -1, fw)
@@ -351,42 +370,57 @@ def apply_convs(input, scale_factor, in_size, out_size, weights, dim, pad_size,
     return fw_swapaxes(tmp_output, -1, dim, fw)
 
 
-def set_scale_and_output_size(in_shape, out_shape, scale_factors, by_convs,
-                         scale_tolerance, max_numerator, eps, fw):
+def set_scale_and_output_size(
+    in_shape,
+    out_shape,
+    scale_factors,
+    by_convs,
+    scale_tolerance,
+    max_numerator,
+    eps,
+    fw,
+):
     # eventually we must have both scale-factors and out-sizes for all in/out
     # dims. however, we support many possible partial arguments
     if scale_factors is None and out_shape is None:
-        raise ValueError("either scale_factors or out_shape should be "
-                         "provided")
+        raise ValueError("either scale_factors or out_shape should be provided")
     if out_shape is not None:
         # if out_shape has less dims than in_shape, we defaultly resize the
         # first dims for numpy and last dims for torch
-        out_shape = (list(out_shape) + list(in_shape[len(out_shape):])
-                     if fw is np
-                     else list(in_shape[:-len(out_shape)]) + list(out_shape))
+        out_shape = (
+            list(out_shape) + list(in_shape[len(out_shape):])
+            if fw is np
+            else list(in_shape[:-len(out_shape)]) + list(out_shape)
+        )
         if scale_factors is None:
             # if no scale given, we calculate it as the out to in ratio
             # (not recomended)
-            scale_factors = [out_size / in_size for out_size, in_size
-                             in zip(out_shape, in_shape)]
+            scale_factors = [
+                out_size / in_size for out_size, in_size in zip(out_shape, in_shape)
+            ]
     if scale_factors is not None:
         # by default, if a single number is given as scale, we assume resizing
         # two dims (most common are images with 2 spatial dims)
-        scale_factors = (scale_factors
-                         if isinstance(scale_factors, (list, tuple))
-                         else [scale_factors, scale_factors])
+        scale_factors = (
+            scale_factors
+            if isinstance(scale_factors, (list, tuple))
+            else [scale_factors, scale_factors]
+        )
         # if less scale_factors than in_shape dims, we defaultly resize the
         # first dims for numpy and last dims for torch
-        scale_factors = (list(scale_factors) + [1] *
-                         (len(in_shape) - len(scale_factors)) if fw is np
-                         else [1] * (len(in_shape) - len(scale_factors)) +
-                         list(scale_factors))
+        scale_factors = (
+            list(scale_factors) + [1] * (len(in_shape) - len(scale_factors))
+            if fw is np
+            else [1] * (len(in_shape) - len(scale_factors)) + list(scale_factors)
+        )
         if out_shape is None:
             # when no out_shape given, it is calculated by multiplying the
             # scale by the in_shape (not recomended)
-            out_shape = [math.ceil(scale_factor * in_size)
-                         for scale_factor, in_size in
-                         zip(scale_factors, in_shape)]
+            out_shape = [
+                math.ceil(scale_factor * in_size)
+                for scale_factor, in_size
+                in zip(scale_factors, in_shape)
+            ]
         # next part intentionally after out_shape determined for stability
         # we fix by_convs to be a list of truth values in case it is not
         if not isinstance(by_convs, (list, tuple)):
@@ -397,7 +431,7 @@ def set_scale_and_output_size(in_shape, out_shape, scale_factors, by_convs,
         for ind, (sf, dim_by_convs) in enumerate(zip(scale_factors, by_convs)):
             # first we fractionaize
             if dim_by_convs:
-                frac = Fraction(1/sf).limit_denominator(max_numerator)
+                frac = Fraction(1 / sf).limit_denominator(max_numerator)
                 frac = Fraction(numerator=frac.denominator, denominator=frac.numerator)
 
             # if accuracy is within tolerance scale will be frac. if not, then
@@ -424,8 +458,7 @@ def apply_antialiasing_if_needed(
     scale_factor = float(scale_factor)
     if scale_factor >= 1.0 or not antialiasing:
         return interp_mode, support_size
-    cur_interp_mode = (lambda arg: scale_factor *
-                         interp_mode(scale_factor * arg))
+    cur_interp_mode = (lambda arg: scale_factor * interp_mode(scale_factor * arg))
     cur_support_size = support_size / scale_factor
     return cur_interp_mode, cur_support_size
 
@@ -471,8 +504,9 @@ def fw_pad(x, fw, pad_size, pad_mode, dim=0):
 
         pad_vec = [0] * ((x.ndim - 2) * 2)
         pad_vec[0:2] = pad_size
-        return fw.nn.functional.pad(x.transpose(dim, -1), pad=pad_vec,
-                                    mode=pad_mode).transpose(dim, -1)
+        return fw.nn.functional.pad(
+            x.transpose(dim, -1), pad=pad_vec, mode=pad_mode
+        ).transpose(dim, -1)
 
 
 def fw_conv(input, filter, stride):
@@ -483,9 +517,9 @@ def fw_conv(input, filter, stride):
     # dims stored in the 3d dim. like depthwise conv over these.
     # TODO: numpy support
     reshaped_input = input.reshape(1, 1, -1, input.shape[-1])
-    reshaped_output = torch.nn.functional.conv2d(reshaped_input,
-                                                 filter.view(1, 1, 1, -1),
-                                                 stride=(1, stride))
+    reshaped_output = torch.nn.functional.conv2d(
+        reshaped_input, filter.view(1, 1, 1, -1), stride=(1, stride),
+    )
     return reshaped_output.reshape(*input.shape[:-1], -1)
 
 
@@ -512,7 +546,7 @@ def downsample_then_upsample(x, scale_factor=None, mode="area-bicubic"):
             temp_device = ori_device
 
         if mode == "resizeright":
-            x = resize(x, scale_factors=1 / scale_factor)
+            x = apply_resizeright(x, scale_factors=1 / scale_factor)
         elif mode == "area-bicubic":
             x = F.interpolate(x, scale_factor=1 / scale_factor, mode="area")
         else:
@@ -521,7 +555,7 @@ def downsample_then_upsample(x, scale_factor=None, mode="area-bicubic"):
             x = F.interpolate(x, scale_factor=1 / scale_factor, mode=mode)
 
         if mode == "resizeright":
-            x = resize(x, scale_factors=scale_factor)
+            x = apply_resizeright(x, scale_factors=scale_factor)
         elif mode == "area-bicubic":
             x = F.interpolate(
                 x.to(temp_device), scale_factor=scale_factor, mode="bicubic",
@@ -546,10 +580,7 @@ if __name__ == "__main__":
     import torchvision.transforms.functional as TF
     from pathlib import Path
 
-    # DEVICE = torch.device("cpu")
     DEVICE = get_device()
-    # x = torch.randn(4, 3, 32, 32, device=DEVICE)
-    # F.interpolate(x, 4, mode="bicubic")
     ROOT_DIR = Path(__file__).resolve().parent
     SAVE_DIR = ROOT_DIR/"experiments/image_resizing_modes"
 

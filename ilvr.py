@@ -5,7 +5,7 @@ import imageio
 from tqdm import tqdm
 from pathlib import Path
 
-from resizeright import downsample_then_upsample
+from resize import downsample_then_upsample
 from celeba import CelebADS
 from metfaces import MetFacesDS
 from utils import image_to_grid, create_dir

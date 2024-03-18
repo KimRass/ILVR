@@ -45,12 +45,12 @@
 | Original image |
 
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/601bf30c-5485-4041-b38b-afa79f6e5bdf" width="200"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/3c6edb83-e187-4e34-8218-b88b19c66ef9" width="200"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/54e8c2cb-c179-4a09-929c-a070914e3e8a" width="200"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/55304975-0d20-4280-ae97-1c2e4ef13b33" width="200"> |
-|:-:|-|:-:|-|
+|:-:|:-:|:-:|:-:|
 | Nearest | Area | Bilinear | Bicubic |
 - Upsample과 Downsample 시에 동일한 Mode를 사용하면 Artifact가 발생합니다.
 
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/66f5d8a2-500b-42ec-9202-5f753122153e" width="200"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/90586639-854c-4781-bb51-c2d55ae04313" width="200"> |
-|:-:|-|
+|:-:|:-:|
 | Resizeright [1] | Area-Bicubic |
 - Resizeright [1]를 사용할 경우 이미지에 자연스럽게 Blur를 적용한 듯한 효과가 생깁니다.
 - Downsample시에 Area mode를, Upsample시에 Bicubic mode를 사용하면 이와 거의 유사한 효과를 낼 수 있습니다. 이쪽이 더 간단하게 구현되므로 본 구현체에서는 이 방법을 사용했습니다.

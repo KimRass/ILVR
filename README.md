@@ -26,10 +26,24 @@
 
 # 2. Implementation Details
 
-# 3. Theoretical Background
+# 3. Experiments
+## 1) Image Resizing Modes
+| <img src="https://github.com/KimRass/ILVR/assets/67457712/3ce2b854-373d-4f56-a583-cc76971324fd" width="300"> |
+|-|
+| Original image |
+
+| <img src="https://github.com/KimRass/ILVR/assets/67457712/601bf30c-5485-4041-b38b-afa79f6e5bdf" width="300"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/3c6edb83-e187-4e34-8218-b88b19c66ef9" width="300"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/54e8c2cb-c179-4a09-929c-a070914e3e8a" width="300"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/55304975-0d20-4280-ae97-1c2e4ef13b33" width="300"> |
+|-|-|-|-|
+| Nearest | Area | Bilinear | Bicubic |
+
+| <img src="https://github.com/KimRass/ILVR/assets/67457712/66f5d8a2-500b-42ec-9202-5f753122153e" width="300"> | <img src="https://github.com/KimRass/ILVR/assets/67457712/90586639-854c-4781-bb51-c2d55ae04313" width="300"> |
+|-|-|
+| Resizeright | Area-Bicubic |
+
+# 4 Theoretical Background
 $${x^{\prime}_{t - 1}} \sim p_{\theta}(x^{\prime}_{t - 1} \vert x_{t})$$
 $$y_{t - 1} \sim q(y_{t - 1} \vert y)$$
 $$x_{t - 1} \leftarrow \phi_{N}(y_{t - 1}) + x^{\prime}_{t - 1} - \phi_{N}(x^{\prime}_{t - 1})$$
 
-# 4. References
+# 5. References
 - [1] https://github.com/assafshocher/ResizeRight

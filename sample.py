@@ -48,7 +48,10 @@ def get_sample_num(x, pref):
 
 def get_max_sample_num(samples_dir, pref):
     stems = [path.stem for path in Path(samples_dir).glob("**/*") if path.is_file()]
-    return max([get_sample_num(stem, pref=pref) for stem in stems])
+    if stems:
+        return max([get_sample_num(stem, pref=pref) for stem in stems])
+    else:
+        return -1
 
 
 def pref_to_save_path(samples_dir, pref, suffix):

@@ -1,4 +1,7 @@
-# 1. Samples
+# 1. Pretrained Models
+- Download 'ddpm_celeba_64×64.pth' from [DDPM](https://github.com/KimRass/DDPM)
+
+# 2. Samples
 ## 1) "single_ref" Mode
 | `mode="single_ref"`, `dataset="celeba"`, `scale_factor=4` |
 |:-:|

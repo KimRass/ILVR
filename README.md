@@ -2,7 +2,7 @@
 - Download 'ddpm_celeba_64×64.pth' from [DDPM](https://github.com/KimRass/DDPM)
 
 # 2. Samples
-## 1) "single_ref" Mode
+## 1) Sampling from Single Reference
 | `mode="single_ref"`, `dataset="celeba"`, `scale_factor=4` |
 |:-:|
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/d348a564-6632-4b0d-ae27-b881ee022844" width="450"> |
@@ -27,14 +27,13 @@
 |:-:|
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/2e1bb2bd-388e-496d-bf52-cf640dcfbb2c" width="450"> |
 | The top left is each reference image. |
-
-## 2) "various_scale_factors" Mode
+## 2) Sampling from Various Scale Factors
 | `mode="various_scale_factors"`, `dataset="celeba"`|
 |:-:|
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/923b4b70-e0ef-4c79-9ff2-14a330d9a768" width="450"> |
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/426bcd77-6186-49b6-aee5-4d87925174dd" width="450"> |
 | The leftmost is each reference image and the rest correspond to `scale_factor=4`, `8`, `16`, `32`, `64` from left to right. |
-## 3) "various_cond_range" Mode
+## 3) Sampling from Various Conditioning Range
 | `mode="various_cond_range"`, `dataset="celeba"` |
 |:-:|
 | <img src="https://github.com/KimRass/ILVR/assets/67457712/800a020f-0884-4bbf-b474-2ffe7ea2a672" width="700"> |
